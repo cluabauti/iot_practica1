@@ -1,0 +1,2 @@
+#define BOT_TOKEN "7618978665:AAHuhrlPt6Uz2XXOc9dn2Ba3SmibbUfoy5w"
+#define CHAT_ID "4924904468"
