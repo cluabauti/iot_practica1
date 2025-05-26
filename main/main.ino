@@ -35,6 +35,9 @@ unsigned long lastMeasurement = 0;
 const unsigned long measurementInterval = 60000; // Tiempo entre mediciones = 1 minuto
 
 int temp = 0;
+bool automatico = true;
+
+
 void handleNewMessages(int numNewMessages) {
 
   for (int i=0; i<numNewMessages; i++) {
@@ -74,8 +77,22 @@ void handleNewMessages(int numNewMessages) {
         bot.sendMessage(chat_id, "Las ventanas ya se encontraban cerradas", "");
     }
 
-    if (text == "/activar_automatico" || text == "/desactivar_automatico"){
-      bot.sendMessage(chat_id, "Todavia no implementado", "");
+    if (text == "/activar_automatico"){
+      if (!automatico){
+        toggle_automatico();
+        bot.sendMessage(chat_id, "Medición automática activada", "");
+      }
+      else
+        bot.sendMessage(chat_id, "Medición automática ya se encontraba activada", "");
+    }
+
+    if (text == "/desactivar_automatico"){
+      if (automatico){
+        toggle_automatico();
+        bot.sendMessage(chat_id, "Medición automática desactivada", "");
+      }
+      else
+        bot.sendMessage(chat_id, "Medición automática ya se encontraba desactivada", "");
     }
   }
 }
@@ -114,6 +131,40 @@ void actuar_cambio_temp(){
     else
       Serial.println("No accion ante cambio temp");
 }
+
+String calcular_proximo_mensaje() {
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    return "Hora no disponible";
+  }
+
+  // Convertir a timestamp
+  time_t now = mktime(&timeinfo);
+  now += notificationInterval / 1000; // Sumar 5 minutos (en segundos)
+
+  // Convertir de nuevo a estructura de tiempo
+  struct tm* future = localtime(&now);
+
+  char buffer[6]; // HH:MM
+  sprintf(buffer, "%02d:%02d", future->tm_hour, future->tm_min);
+  return String(buffer);
+}
+
+String estado_vent_to_str(){
+  if (estado_vent)
+    return "Abiertas";
+  else
+    return "Cerradas";
+}
+
+int get_temperatura(){
+  return random(15,35);
+}
+
+void toggle_automatico(){
+  automatico = !automatico;
+}
+
 //Iniciamos los pines del ESP32
 void setup() {
 
@@ -143,37 +194,14 @@ void setup() {
   pinMode(PIN_LED, OUTPUT);
 }
 
-String calcular_proximo_mensaje() {
-  struct tm timeinfo;
-  if (!getLocalTime(&timeinfo)) {
-    return "Hora no disponible";
-  }
 
-  // Convertir a timestamp
-  time_t now = mktime(&timeinfo);
-  now += notificationInterval / 1000; // Sumar 5 minutos (en segundos)
-
-  // Convertir de nuevo a estructura de tiempo
-  struct tm* future = localtime(&now);
-
-  char buffer[6]; // HH:MM
-  sprintf(buffer, "%02d:%02d", future->tm_hour, future->tm_min);
-  return String(buffer);
-}
-
-String estado_vent_to_str(){
-  if (estado_vent)
-    return "Abiertas";
-  else
-    return "Cerradas";
-}
 //Iniciamos la funcion bucle que se repetira indefinidamente
 void loop(){
   //Encendemos el PIN_LED
   Serial.println(temp);
 
-  if ((millis() - lastMeasurement) > measurementInterval){
-    temp = random(15, 35);
+  if (automatico && (millis() - lastMeasurement) > measurementInterval){
+    temp = get_temperatura();
     actuar_cambio_temp();
     lastMeasurement = millis();
   }
@@ -195,7 +223,7 @@ void loop(){
   if ((now - lastNotificationTime) > notificationInterval) {
     String prox_msg = calcular_proximo_mensaje();
     String estado_vent_str = estado_vent_to_str();
-    temp = random(10,35);
+    temp = get_temperatura();
     String temp_str = String(temp);
 
     String msg = "Temperatura actual: "+ temp_str + "\n";
