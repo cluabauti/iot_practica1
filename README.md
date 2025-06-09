@@ -9,7 +9,3 @@
 #define SSID "XXXXXXXXXXXXXXXXXXXXXXXXXXX"
 #define PASSWORD "XXXXXXXXXX"
 ```
-
-##TODO
-- [ ] avisar cuando se activa el motor
-- [ ] desactivar/ retomar la medición
